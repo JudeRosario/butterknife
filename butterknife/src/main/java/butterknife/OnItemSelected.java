@@ -31,7 +31,6 @@ import static java.lang.annotation.RetentionPolicy.CLASS;
  * </code></pre>
  *
  * @see OnItemSelectedListener
- * @see Optional
  */
 @Target(METHOD)
 @Retention(CLASS)

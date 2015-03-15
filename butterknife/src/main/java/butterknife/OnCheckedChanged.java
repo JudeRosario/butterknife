@@ -23,7 +23,6 @@ import static java.lang.annotation.RetentionPolicy.CLASS;
  * onCheckedChanged} may be used on the method.
  *
  * @see OnCheckedChangeListener
- * @see Optional
  */
 @Target(METHOD)
 @Retention(CLASS)

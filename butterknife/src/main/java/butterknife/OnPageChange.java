@@ -25,8 +25,6 @@ import static java.lang.annotation.RetentionPolicy.CLASS;
  *   Toast.makeText(this, "State changed: " + state + "!", LENGTH_SHORT).show();
  * }
  * </code></pre>
- *
- * @see Optional
  */
 @Target(METHOD)
 @Retention(CLASS)

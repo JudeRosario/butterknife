@@ -29,7 +29,6 @@ import static java.lang.annotation.RetentionPolicy.CLASS;
  * </code></pre>
  *
  * @see TextWatcher
- * @see Optional
  */
 @Target(METHOD)
 @Retention(CLASS)
