@@ -9,6 +9,7 @@ import android.util.Log;
 import android.util.Property;
 import android.view.View;
 import butterknife.internal.ButterKnifeProcessor;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,11 +21,11 @@ import static butterknife.internal.ButterKnifeProcessor.JAVA_PREFIX;
  * Field and method binding for Android views. Use this class to simplify finding views and
  * attaching listeners by binding them with annotations.
  * <p>
- * Injecting views from your activity is as easy as:
+ * Finding views from your activity is as easy as:
  * <pre><code>
  * public class ExampleActivity extends Activity {
- *   {@literal @}FindView(R.id.title) EditText titleView;
- *   {@literal @}FindView(R.id.subtitle) EditText subtitleView;
+ *   {@literal @}Bind(R.id.title) EditText titleView;
+ *   {@literal @}Bind(R.id.subtitle) EditText subtitleView;
  *
  *   {@literal @}Override protected void onCreate(Bundle savedInstanceState) {
  *     super.onCreate(savedInstanceState);
@@ -33,7 +34,7 @@ import static butterknife.internal.ButterKnifeProcessor.JAVA_PREFIX;
  *   }
  * }
  * </code></pre>
- * Injection can be performed directly on an {@linkplain #bind(Activity) activity}, a
+ * Binding can be performed directly on an {@linkplain #bind(Activity) activity}, a
  * {@linkplain #bind(View) view}, or a {@linkplain #bind(Dialog) dialog}. Alternate objects to
  * bind can be specified along with an {@linkplain #bind(Object, Activity) activity},
  * {@linkplain #bind(Object, View) view}, or
@@ -41,7 +42,7 @@ import static butterknife.internal.ButterKnifeProcessor.JAVA_PREFIX;
  * <p>
  * Group multiple views together into a {@link List} or array.
  * <pre><code>
- * {@literal @}FindViews({R.id.first_name, R.id.middle_name, R.id.last_name})
+ * {@literal @}Bind({R.id.first_name, R.id.middle_name, R.id.last_name})
  * List<EditText> nameViews;
  * </code></pre>
  * There are three convenience methods for working with view collections:
@@ -68,22 +69,14 @@ import static butterknife.internal.ButterKnifeProcessor.JAVA_PREFIX;
  * If a view is optional add a {@code @Nullable} annotation such as the one in the
  * <a href="http://tools.android.com/tech-docs/support-annotations">support-annotations</a> library.
  * <pre><code>
- * {@literal @}Nullable @FindView(R.id.title) TextView subtitleView;
+ * {@literal @}Nullable @Bind(R.id.title) TextView subtitleView;
  * </code></pre>
- *
- * @see FindView
- * @see FindViews
- * @see OnCheckedChanged
- * @see OnClick
- * @see OnEditorAction
- * @see OnFocusChange
- * @see OnItemClick
- * @see OnItemLongClick
- * @see OnItemSelected
- * @see OnLongClick
- * @see OnPageChange
- * @see OnTextChanged
- * @see OnTouch
+ * Resources can also be bound to fields to simplify programmatically working with views:
+ * <pre><code>
+ * {@literal @}BindBool(R.bool.is_tablet) boolean isTablet;
+ * {@literal @}BindInt(R.integer.columns) int columns;
+ * {@literal @}BindColor(R.color.error_red) int errorRed;
+ * </code></pre>
  */
 public final class ButterKnife {
   private ButterKnife() {
@@ -98,7 +91,7 @@ public final class ButterKnife {
         return ((View) source).findViewById(id);
       }
 
-      @Override protected Context getContext(Object source) {
+      @Override public Context getContext(Object source) {
         return ((View) source).getContext();
       }
     },
@@ -107,7 +100,7 @@ public final class ButterKnife {
         return ((Activity) source).findViewById(id);
       }
 
-      @Override protected Context getContext(Object source) {
+      @Override public Context getContext(Object source) {
         return (Activity) source;
       }
     },
@@ -116,30 +109,20 @@ public final class ButterKnife {
         return ((Dialog) source).findViewById(id);
       }
 
-      @Override protected Context getContext(Object source) {
+      @Override public Context getContext(Object source) {
         return ((Dialog) source).getContext();
       }
     };
 
     private static <T> T[] filterNull(T[] views) {
-      int newSize = views.length;
-      for (T view : views) {
-        if (view == null) {
-          newSize -= 1;
-        }
-      }
-      if (newSize == views.length) {
-        return views;
-      }
-      //noinspection unchecked
-      T[] newViews = (T[]) new Object[newSize];
-      int nextIndex = 0;
-      for (T view : views) {
+      int end = 0;
+      for (int i = 0; i < views.length; i++) {
+        T view = views[i];
         if (view != null) {
-          newViews[nextIndex++] = view;
+          views[end++] = view;
         }
       }
-      return newViews;
+      return Arrays.copyOfRange(views, 0, end);
     }
 
     public static <T> T[] arrayOf(T... views) {
@@ -208,7 +191,7 @@ public final class ButterKnife {
 
     protected abstract View findView(Object source, int id);
 
-    protected abstract Context getContext(Object source);
+    public abstract Context getContext(Object source);
   }
 
   /** DO NOT USE: Exposed for generated code. */
@@ -232,7 +215,7 @@ public final class ButterKnife {
   private static final String TAG = "ButterKnife";
   private static boolean debug = false;
 
-  static final Map<Class<?>, ViewBinder<Object>> INJECTORS =
+  static final Map<Class<?>, ViewBinder<Object>> BINDERS =
       new LinkedHashMap<Class<?>, ViewBinder<Object>>();
   static final ViewBinder<Object> NOP_VIEW_BINDER = new ViewBinder<Object>() {
     @Override public void bind(Finder finder, Object target, Object source) { }
@@ -245,7 +228,7 @@ public final class ButterKnife {
   }
 
   /**
-   * Inject annotated fields and methods in the specified {@link Activity}. The current content
+   * Bind annotated fields and methods in the specified {@link Activity}. The current content
    * view is used as the view root.
    *
    * @param target Target activity for view binding.
@@ -255,7 +238,7 @@ public final class ButterKnife {
   }
 
   /**
-   * Inject annotated fields and methods in the specified {@link View}. The view and its children
+   * Bind annotated fields and methods in the specified {@link View}. The view and its children
    * are used as the view root.
    *
    * @param target Target view for view binding.
@@ -265,7 +248,7 @@ public final class ButterKnife {
   }
 
   /**
-   * Inject annotated fields and methods in the specified {@link Dialog}. The current content
+   * Bind annotated fields and methods in the specified {@link Dialog}. The current content
    * view is used as the view root.
    *
    * @param target Target dialog for view binding.
@@ -275,7 +258,7 @@ public final class ButterKnife {
   }
 
   /**
-   * Inject annotated fields and methods in the specified {@code target} using the {@code source}
+   * Bind annotated fields and methods in the specified {@code target} using the {@code source}
    * {@link Activity} as the view root.
    *
    * @param target Target class for view binding.
@@ -286,7 +269,7 @@ public final class ButterKnife {
   }
 
   /**
-   * Inject annotated fields and methods in the specified {@code target} using the {@code source}
+   * Bind annotated fields and methods in the specified {@code target} using the {@code source}
    * {@link View} as the view root.
    *
    * @param target Target class for view binding.
@@ -297,7 +280,7 @@ public final class ButterKnife {
   }
 
   /**
-   * Inject annotated fields and methods in the specified {@code target} using the {@code source}
+   * Bind annotated fields and methods in the specified {@code target} using the {@code source}
    * {@link Dialog} as the view root.
    *
    * @param target Target class for view binding.
@@ -308,8 +291,7 @@ public final class ButterKnife {
   }
 
   /**
-   * Reset fields annotated with {@link FindView @FindView} and {@link FindViews @FindViews}
-   * to {@code null}.
+   * Reset fields annotated with {@link Bind @Bind} to {@code null}.
    * <p>
    * This should only be used in the {@code onDestroyView} method of a fragment.
    *
@@ -343,7 +325,7 @@ public final class ButterKnife {
 
   private static ViewBinder<Object> findViewBinderForClass(Class<?> cls)
       throws IllegalAccessException, InstantiationException {
-    ViewBinder<Object> viewBinder = INJECTORS.get(cls);
+    ViewBinder<Object> viewBinder = BINDERS.get(cls);
     if (viewBinder != null) {
       if (debug) Log.d(TAG, "HIT: Cached in view binder map.");
       return viewBinder;
@@ -362,7 +344,7 @@ public final class ButterKnife {
       if (debug) Log.d(TAG, "Not found. Trying superclass " + cls.getSuperclass().getName());
       viewBinder = findViewBinderForClass(cls.getSuperclass());
     }
-    INJECTORS.put(cls, viewBinder);
+    BINDERS.put(cls, viewBinder);
     return viewBinder;
   }
 
